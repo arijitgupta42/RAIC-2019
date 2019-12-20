@@ -34,6 +34,12 @@ class MyStrategy:
 			key=lambda box: distance_sqr(box.position, unit.position),
 			default=None)
 		
+		nearest_arm = min(
+			filter(lambda box: isinstance(
+				box.item, model.Item.Weapon), game.loot_boxes),
+			key=lambda box: distance_sqr(box.position, unit.position),
+			default=None)
+		
 		nearest_wep = min(
 		filter(lambda box: box.item.weapon_type.value == 2, filter(lambda weapon: weapon.item.TAG == 1, game.loot_boxes)),
 		key = lambda box: distance_sqr(box.position, unit.position),
@@ -48,11 +54,49 @@ class MyStrategy:
 		for box in game.loot_boxes:
 			if box.item.TAG == 0:
 				health.append(box.position)
+		for i in range(1, len(health)): 
+			key = health[i].x 
+			j = i-1
+			while j >=0 and key < health[j].x : 
+					health[j+1].x = health[j].x 
+					j -= 1
+			health[j+1].x = key 
+		print(health)
+
+		enemies =[]
+		for bot in game.units:
+			if bot.player_id != unit.player_id:
+				enemies.append(bot)
+		
 		bots =[]
 		for bot in game.units:
 			if bot.player_id == unit.player_id:
 				bots.append(bot)
-		
+		if enemies[0].position.x > bots[0].position.x and time_passed < 10:
+			for i in range(1, len(bots)): 
+				key = bots[i].position.x 
+				j = i-1
+				while j >=0 and key < bots[j].position.x : 
+						bots[j+1].position.x = bots[j].position.x 
+						j -= 1
+				bots[j+1].position.x = key 
+
+		elif enemies[0].position.x > bots[0].position.x and time_passed < 10:
+			for i in range(1, len(bots)): 
+				key = bots[i].position.x 
+				j = i-1
+				while j >=0 and key < bots[j].position.x : 
+						bots[j+1].position.x = bots[j].position.x 
+						j -= 1
+				bots[j+1].position.x = key 
+			bots.reverse()
+			
+		if time_passed < 10:
+			if bots[0].weapon is not None and bots[0].weapon.params.explosion is not None:
+				bots.reverse()
+			elif len(bots) == 2 and bots[1].weapon is not None and bots[1].weapon.params.explosion is None:
+				bots.reverse()
+			
 		def line_of_sight(unit, enemy):
 				if unit.x > enemy.x:
 					for x in range(int(unit.x), int(enemy.x),-1):
@@ -100,7 +144,7 @@ class MyStrategy:
 				print("sad")
 
 			if jump_down:
-				if game.level.tiles[int(unit.position.x)][int(unit.position.y) - 1] == model.Tile.JUMP_PAD or game.level.tiles[int(unit.position.x)][int(unit.position.y) - 2] == model.Tile.JUMP_PAD:
+				if game.level.tiles[int(unit.position.x) + 1][int(unit.position.y) - 1] == model.Tile.JUMP_PAD or game.level.tiles[int(unit.position.x) + 1][int(unit.position.y) - 2] == model.Tile.JUMP_PAD:
 					if target_pos.x > unit.position.x:
 						velocity = game.properties.unit_max_horizontal_speed
 					else:
@@ -133,12 +177,11 @@ class MyStrategy:
 				print("sad")
 
 			if jump_down:
-				if game.level.tiles[int(unit.position.x)][int(unit.position.y) - 1] == model.Tile.JUMP_PAD or game.level.tiles[int(unit.position.x)][int(unit.position.y) - 2] == model.Tile.JUMP_PAD:
+				if game.level.tiles[int(unit.position.x) + 1][int(unit.position.y) - 1] == model.Tile.JUMP_PAD or game.level.tiles[int(unit.position.x) + 1][int(unit.position.y) - 2] == model.Tile.JUMP_PAD:
 					if target_pos.x > unit.position.x:
 						velocity = game.properties.unit_max_horizontal_speed
-					else:
+					elif game.level.tiles[int(unit.position.x) + 1][int(unit.position.y) - 1] == model.Tile.JUMP_PAD or game.level.tiles[int(unit.position.x) + 1][int(unit.position.y) - 2] == model.Tile.JUMP_PAD:
 						velocity = -game.properties.unit_max_horizontal_speed
-
 		
 		if unit.weapon is not None and unit.weapon.typ.value != 0 and nearest_weapon is not None and unit.id == bots[0].id:
 			swap_weapon = True
@@ -157,19 +200,54 @@ class MyStrategy:
 			jump_down = not jump
 
 			if jump_down:
-				if game.level.tiles[int(unit.position.x)][int(unit.position.y) - 1] == model.Tile.JUMP_PAD or game.level.tiles[int(unit.position.x)][int(unit.position.y) - 2] == model.Tile.JUMP_PAD:
+				if game.level.tiles[int(unit.position.x) + 1][int(unit.position.y) - 1] == model.Tile.JUMP_PAD or game.level.tiles[int(unit.position.x) + 1][int(unit.position.y) - 2] == model.Tile.JUMP_PAD:
 					if target_pos.x > unit.position.x:
 						velocity = game.properties.unit_max_horizontal_speed
-					else:
+					elif game.level.tiles[int(unit.position.x) + 1][int(unit.position.y) - 1] == model.Tile.JUMP_PAD or game.level.tiles[int(unit.position.x) + 1][int(unit.position.y) - 2] == model.Tile.JUMP_PAD:
 						velocity = -game.properties.unit_max_horizontal_speed
 			if nearest_enemy is not None:
+				
 				aim = model.Vec2Double((nearest_enemy.position.x - unit.position.x),(nearest_enemy.position.y - unit.position.y) + 0.15)
 				if line_of_sight(unit.position, nearest_enemy.position):
 					shoot = True
+
+		elif unit.weapon is None and unit.weapon.typ.value != 2 and nearest_arm is not None and len(bots) == 2 and unit.id == bots[1].id:
+			swap_weapon = True
+			target_pos = nearest_arm.position
+			aim = model.Vec2Double(int(target_pos.x - unit.position.x),int(target_pos.y - unit.position.y))
+			jump = target_pos.y > unit.position.y			
+
+			if target_pos.x > unit.position.x and game.level.tiles[int(unit.position.x + 1)][int(unit.position.y)] == model.Tile.WALL:
+				jump = True
+			elif target_pos.x < unit.position.x and game.level.tiles[int(unit.position.x - 1)][int(unit.position.y)] == model.Tile.WALL:
+				jump = True
+
+			if target_pos.x != unit.position.x:
+				velocity = game.properties.unit_max_horizontal_speed * ((target_pos.x - unit.position.x)/abs(target_pos.x - unit.position.x))
+
+			jump_down = not jump
+
+			if jump_down:
+				if game.level.tiles[int(unit.position.x) + 1][int(unit.position.y) - 1] == model.Tile.JUMP_PAD or game.level.tiles[int(unit.position.x) + 1][int(unit.position.y) - 2] == model.Tile.JUMP_PAD:
+					if target_pos.x > unit.position.x:
+						velocity = game.properties.unit_max_horizontal_speed
+					elif game.level.tiles[int(unit.position.x) + 1][int(unit.position.y) - 1] == model.Tile.JUMP_PAD or game.level.tiles[int(unit.position.x) + 1][int(unit.position.y) - 2] == model.Tile.JUMP_PAD:
+						velocity = -game.properties.unit_max_horizontal_speed
+
+			if nearest_enemy is not None:
 				
+				aim = model.Vec2Double((nearest_enemy.position.x - unit.position.x),(nearest_enemy.position.y - unit.position.y) + 0.15)
+				if line_of_sight(unit.position, nearest_enemy.position):
+					shoot = True
+
 
 		elif unit.weapon is not None and unit.weapon.typ.value != 2 and nearest_wep is not None and len(bots) == 2 and unit.id == bots[1].id:
 			swap_weapon = True
+			try:
+				if distance_sqr(unit.position, nearest_weapon) < 1.1:
+					swap_weapon = False
+			except:
+				swap_weapon = True
 			target_pos = nearest_wep.position
 			aim = model.Vec2Double(int(target_pos.x - unit.position.x),int(target_pos.y - unit.position.y))
 			jump = target_pos.y > unit.position.y			
@@ -185,17 +263,24 @@ class MyStrategy:
 			jump_down = not jump
 
 			if jump_down:
-				if game.level.tiles[int(unit.position.x)][int(unit.position.y) - 1] == model.Tile.JUMP_PAD or game.level.tiles[int(unit.position.x)][int(unit.position.y) - 2] == model.Tile.JUMP_PAD:
+				if game.level.tiles[int(unit.position.x) + 1][int(unit.position.y) - 1] == model.Tile.JUMP_PAD or game.level.tiles[int(unit.position.x) + 1][int(unit.position.y) - 2] == model.Tile.JUMP_PAD:
 					if target_pos.x > unit.position.x:
 						velocity = game.properties.unit_max_horizontal_speed
-					else:
+					elif game.level.tiles[int(unit.position.x) + 1][int(unit.position.y) - 1] == model.Tile.JUMP_PAD or game.level.tiles[int(unit.position.x) + 1][int(unit.position.y) - 2] == model.Tile.JUMP_PAD:
 						velocity = -game.properties.unit_max_horizontal_speed
-		
+
+			if nearest_enemy is not None:
+				
+				aim = model.Vec2Double((nearest_enemy.position.x - unit.position.x),(nearest_enemy.position.y - unit.position.y) + 0.15)
+				if line_of_sight(unit.position, nearest_enemy.position):
+					shoot = True
+
+				
 		else:
 			if unit.weapon is not None and nearest_enemy is not None:
-
 				target_pos = nearest_enemy.position
 				aim = model.Vec2Double((target_pos.x - unit.position.x),(target_pos.y - unit.position.y) + 0.15)
+				
 				if nearest_enemy.weapon is not None:
 					if nearest_enemy.weapon.fire_timer is not None:
 						if nearest_enemy.weapon.fire_timer > 0.4 and line_of_sight(unit.position, nearest_enemy.position):
@@ -254,7 +339,7 @@ class MyStrategy:
 							jump = False
 							jump_down = False
 	
-				if distance_sqr(nearest_enemy.position, unit.position) <= 9 and line_of_sight(unit.position, nearest_enemy.position):
+				if distance_sqr(nearest_enemy.position, unit.position) <= 16 and line_of_sight(unit.position, nearest_enemy.position):
 					shoot = True
 				
 				if nearest_enemy.weapon is None and line_of_sight(unit.position, nearest_enemy.position):
@@ -272,9 +357,9 @@ class MyStrategy:
 								shoot = True
 						else:
 							if nearest_enemy.health < unit.health:
-								mindist = 6/(1 + ((nearest_enemy.health - unit.health)*0.25)*0.5) 
+								mindist = 4/(1 + ((nearest_enemy.health - unit.health)*0.25)*0.5) 
 							else:
-								mindist = 6
+								mindist = 4
 					
 					else:
 						if mindist == 15:
@@ -337,9 +422,9 @@ class MyStrategy:
 								mindist = 14
 						else:
 							if nearest_enemy.health < unit.health:
-								mindist = 6/(1 + ((nearest_enemy.health - unit.health)*0.25)*0.5) 
+								mindist = 4/(1 + ((nearest_enemy.health - unit.health)*0.25)*0.5) 
 							else:
-								mindist = 6
+								mindist = 4
 					
 					else:
 						if mindist == 15:
@@ -424,14 +509,37 @@ class MyStrategy:
 				jump = False
 				jump_down = True
 			
+			h_right = None
+			h_left = None
+
 			if unit.weapon is not None and nearest_health is not None and unit.health < (game.properties.unit_max_health)*0.775:
-				for pack in health:
-					if int(nearest_enemy.position.x) < int(pack.x) < int(unit.position.x) or int(nearest_enemy.position.x) > int(pack.x) > int(unit.position.x):
-						continue
-					elif len(health) > 1:
-						target_pos = pack
+				if len(health) == 1:
+					target_pos = nearest_health.position
+				
+				
+				elif len(health) >1:
+
+					if unit.position.x < health[0].x:
+						target_pos = health[0]
+					elif unit.position.x > health[-1].x:
+						target_pos = health[-1]
 					else:
-						target_pos = nearest_health.position
+						for i in range(1, len(health)):
+							if health[i].x > unit.position.x:
+								h_right = health[i]
+								h_left = health[i-1]
+						if int(nearest_enemy.position.x) > int(unit.position.x):
+							target_pos = h_left
+						elif int(nearest_enemy.position.x) < int(unit.position.x):
+							target_pos = h_right
+						else:
+							if game.level.tiles[int(unit.position.x) + 1][int(unit.position.y)] == model.Tile.WALL:
+								target_pos = h_left
+							elif game.level.tiles[int(unit.position.x) - 1][int(unit.position.y)] == model.Tile.WALL:
+								target_pos = h_right
+							else:
+								target_pos = h_right
+
 				if unit.health < game.properties.unit_max_health*0.25:
 					need_health = True
 
@@ -453,12 +561,11 @@ class MyStrategy:
 					jump_down = True
 
 				if target_pos.x > unit.position.x and nearest_enemy.position.x > unit.position.x:
-					jump = True
 					jump_down = unit.jump_state.max_time < 0.3
+					jump = not jump_down
 				elif target_pos.x < unit.position.x and nearest_enemy.position.x < unit.position.x:
-					jump = True
 					jump_down = unit.jump_state.max_time < 0.3
-								
+					jump = not jump_down
 
 				if nearest_enemy.weapon is not None:
 					if nearest_enemy.weapon.fire_timer is not None:
@@ -505,7 +612,7 @@ class MyStrategy:
 								shoot = True
 						elif nearest_enemy.weapon.fire_timer is None and line_of_sight(unit.position, nearest_enemy.position):
 							shoot = True 
-					if distance_sqr(nearest_enemy.position, unit.position) <= 25 and line_of_sight(unit.position, nearest_enemy.position):
+					if distance_sqr(nearest_enemy.position, unit.position) <= 16 and line_of_sight(unit.position, nearest_enemy.position):
 						shoot = True
 					if nearest_enemy.weapon is None and line_of_sight(unit.position, nearest_enemy.position):
 						shoot = True	
@@ -513,13 +620,13 @@ class MyStrategy:
 			unit_centre = model.Vec2Double(unit.position.x, unit.position.y + 0.9 )
 			if unit.weapon is not None and unit.weapon.params.explosion is not None and unit.health < game.properties.unit_max_health*0.2 and nearest_health is None:
 				if shoot:
-					if distance_sqr(nearest_enemy.position, unit.position) <= 2 and line_of_sight(nearest_enemy, unit_centre):
+					if distance_sqr(nearest_enemy.position, unit.position) <= 2 and line_of_sight(nearest_enemy.position, unit_centre):
 						shoot = True
 					else:
 						shoot = False
 
 
-
+			
 			detect = 0
 			explosion = 0
 			exploding_tile = model.Vec2Double(0,0)
@@ -529,8 +636,11 @@ class MyStrategy:
 							radius = bullet.explosion_params.radius + 8
 							explosion = bullet.explosion_params.radius
 					else:
-						radius = distance_sqr(unit_centre, nearest_enemy.position)
-						radius = radius**(0.5)
+						try:
+							radius = distance_sqr(unit_centre, nearest_enemy.position)
+							radius = radius**(0.5)
+						except:
+							radius = 10
 					if radius < 0:
 						radius = -radius
 
@@ -571,7 +681,7 @@ class MyStrategy:
 								slope_req = (-1) * (1/slope_bullet)
 								velocity = game.properties.unit_max_horizontal_speed
 								if slope_req < 0:
-									if int(bullet.position.y) > int(unit_centre.y) + 0.9:
+									if int(bullet.position.y) >= int(unit_centre.y):
 										jump = False
 										jump_down = True
 										if game.level.tiles[int(unit.position.x)][int(unit.position.y) - 1] == model.Tile.WALL:
@@ -584,7 +694,7 @@ class MyStrategy:
 											velocity = -velocity
 										
 								if slope_req > 0:
-									if int(bullet.position.y) > int(unit_centre.y) + 0.9:
+									if int(bullet.position.y) >= int(unit_centre.y):
 										jump = False
 										jump_down = True
 										if game.level.tiles[int(unit.position.x)][int(unit.position.y) - 1] == model.Tile.WALL:
@@ -644,6 +754,24 @@ class MyStrategy:
 						if abs(nearest_enemy.position.x - bots[0].position.x) < abs(nearest_enemy.position.x - unit.position.x):
 							if(bots[0].health > game.properties.unit_max_health*0.5):
 								shoot = False
+					
+			if unit.weapon.params.explosion is None:
+				if len(bots) == 2:
+					if (target_pos.x - bots[1].position.x)*(target_pos.x - unit.position.x) > 0:
+						if abs(target_pos.x - bots[1].position.x) < abs(target_pos.x - unit.position.x):
+							if(bots[1].health > game.properties.unit_max_health*0.35):
+								shoot = False
+
+		
+		if unit.id == bots[0].id and len(bots) == 2:
+			if nearest_enemy is not None:
+				if distance_sqr(unit.position, bots[1].position) <= 2:
+					jump = True
+					if game.level.tiles[int(unit.position.x + 1)][int(unit.position.y)] == model.Tile.WALL:
+						velocity = -game.properties.unit_max_horizontal_speed
+					elif game.level.tiles[int(unit.position.x - 1)][int(unit.position.y)] == model.Tile.WALL:
+						velocity = game.properties.unit_max_horizontal_speed
+
 
 		 
 		return model.UnitAction(

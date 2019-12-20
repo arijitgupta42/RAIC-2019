@@ -211,7 +211,7 @@ class MyStrategy:
 				if line_of_sight(unit.position, nearest_enemy.position):
 					shoot = True
 
-		elif unit.weapon is None and unit.weapon.typ.value != 2 and nearest_arm is not None and len(bots) == 2 and unit.id == bots[1].id:
+		elif unit.weapon is None and nearest_wep is None and nearest_arm is not None and len(bots) == 2 and unit.id == bots[1].id:
 			swap_weapon = True
 			target_pos = nearest_arm.position
 			aim = model.Vec2Double(int(target_pos.x - unit.position.x),int(target_pos.y - unit.position.y))

@@ -1,7 +1,7 @@
 import model
 from stream_wrapper import StreamWrapper
 from debug import Debug
-from new_strat import MyStrategy
+from my_strategy import MyStrategy
 import socket
 import sys
 

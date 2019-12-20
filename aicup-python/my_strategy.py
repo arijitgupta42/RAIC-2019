@@ -748,8 +748,6 @@ class MyStrategy:
 						shoot = False
 					if circle(bots[0].position, unit.position, unit.weapon.params.explosion.radius) and bots[0].health > game.properties.unit_max_health*0.2 and nearest_health is not None and nearest_enemy is not None and not circle(nearest_enemy.position, unit.position, unit.weapon.params.explosion.radius):
 						shoot = False
-					if circle(bots[1].position, nearest_enemy.position, unit.weapon.params.explosion.radius):
-						shoot = True
 					if (nearest_enemy.position.x - bots[0].position.x)*(nearest_enemy.position.x - unit.position.x) > 0:
 						if abs(nearest_enemy.position.x - bots[0].position.x) < abs(nearest_enemy.position.x - unit.position.x):
 							if(bots[0].health > game.properties.unit_max_health*0.5):
